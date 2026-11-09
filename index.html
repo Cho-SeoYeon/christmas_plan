@@ -245,18 +245,18 @@ function localSave(){try{localStorage.setItem(LS,JSON.stringify(localRows))}catc
 let seeding=false;
 async function fetchRows(){
   if(!sb)return sortRows(localLoad());
-  const {data,error}=await sb.from('stops').select('*').eq('trip_id',TRIP).order('start_time').order('created_at');
+  const {data,error}=await sb.from('xmas_stops').select('*').eq('trip_id',TRIP).order('start_time').order('created_at');
   if(error)throw error;
-  if(!data.length&&!seeding){seeding=true;const {error:e2}=await sb.from('stops').insert(SEED.map(r=>Object.assign({trip_id:TRIP},r)));if(e2)throw e2;return fetchRows();}
+  if(!data.length&&!seeding){seeding=true;const {error:e2}=await sb.from('xmas_stops').insert(SEED.map(r=>Object.assign({trip_id:TRIP},r)));if(e2)throw e2;return fetchRows();}
   return sortRows(data);
 }
 async function addRow(row){
   if(!sb){row.id='local-'+Date.now();row.created_at=new Date().toISOString();localLoad().push(row);localSave();return}
-  const {error}=await sb.from('stops').insert(Object.assign({trip_id:TRIP},row));if(error)throw error;
+  const {error}=await sb.from('xmas_stops').insert(Object.assign({trip_id:TRIP},row));if(error)throw error;
 }
 async function deleteRow(id){
   if(!sb){localRows=localLoad().filter(r=>r.id!==id);localSave();return}
-  const {error}=await sb.from('stops').delete().eq('id',id);if(error)throw error;
+  const {error}=await sb.from('xmas_stops').delete().eq('id',id);if(error)throw error;
 }
 
 /* ================= geometry helpers ================= */
@@ -857,7 +857,7 @@ function tick(){
   if(sb){
     setSync('live','실시간 공유 중');
     let t=0;const later=()=>{clearTimeout(t);t=setTimeout(()=>refresh(null).catch(()=>setSync('err','새로고침 실패')),250);};
-    sb.channel('stops-'+TRIP).on('postgres_changes',{event:'*',schema:'public',table:'stops'},later)
+    sb.channel('stops-'+TRIP).on('postgres_changes',{event:'*',schema:'public',table:'xmas_stops'},later)
       .subscribe(st=>{if(st==='SUBSCRIBED')setSync('live','실시간 공유 중');else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT')setSync('err','실시간 연결 끊김');});
   }
   setPlay(true);

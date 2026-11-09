@@ -8,7 +8,7 @@
 
 ## 1. Supabase 연결
 
-1. [supabase.com](https://supabase.com)에서 새 프로젝트를 만들어요.
+1. 이미 있는 Supabase 프로젝트를 그대로 써도 돼요 (테이블 이름이 `xmas_stops`라 기존 테이블과 겹치지 않아요). 새로 만들 필요 없어요.
 2. 대시보드의 **SQL Editor**에 `supabase/schema.sql` 내용을 붙여 넣고 **Run**을 눌러요.
 3. **Project Settings → API**에서 `Project URL`과 `anon`(publishable) 키를 복사해 `config.js`에 넣어요.
    - `service_role` 키는 절대 넣지 마세요.
@@ -28,4 +28,4 @@
 | --- | --- |
 | `index.html` | 3D 지도, 캐릭터, 일정 화면 (three.js r128) |
 | `config.js` | Supabase 주소와 키 |
-| `supabase/schema.sql` | `stops` 테이블, 접근 권한, 실시간 설정 |
+| `supabase/schema.sql` | `xmas_stops` 테이블, 접근 권한, 실시간 설정 |
