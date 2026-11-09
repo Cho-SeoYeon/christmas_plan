@@ -137,10 +137,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <h1>크리스마스 <b>서울</b> 데이트</h1>
     <div class="brandrow"><div class="sync" id="sync"><i></i><span>불러오는 중</span></div><button type="button" class="music" id="music" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v11.3A3.5 3.5 0 1 0 11 17.5V8h8V3H9z"/></svg><span>캐롤 켜기</span></button></div>
   </div>
-  <div class="pill clock">
-    <div class="t" id="clock">11:30</div>
-    <div class="mode"><i id="modeDot"></i><span id="modeTxt">서울역 도착</span></div>
-  </div>
+</div>
 </div>
 
 <section id="sheet" aria-label="일정">
@@ -832,13 +829,23 @@ function kid(o){
 /* the couple: the user's own illustration, cut out and stood up on the map like a paper doll */
 const coupleTex=new THREE.TextureLoader().load('couple.webp');coupleTex.encoding=THREE.sRGBEncoding;coupleTex.anisotropy=8;
 const CH=4.4,CW=CH*464/640;
-const cgeo=new THREE.PlaneGeometry(CW,CH);cgeo.translate(0,CH/2,0);
-const coupleMat=new THREE.MeshStandardMaterial({map:coupleTex,alphaTest:.5,side:THREE.DoubleSide,roughness:.9,emissive:new THREE.Color(0xffffff),emissiveMap:coupleTex,emissiveIntensity:.3});
-const coupleCard=new THREE.Mesh(cgeo,coupleMat);coupleCard.castShadow=true;
-coupleCard.customDepthMaterial=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:coupleTex,alphaTest:.5});
+const DEPTH=.55,cgeo=new THREE.PlaneGeometry(CW,CH,115,159);cgeo.translate(0,CH/2,0);
+const coupleMat=new THREE.MeshStandardMaterial({map:coupleTex,alphaTest:.5,side:THREE.DoubleSide,roughness:.75,emissive:new THREE.Color(0xffffff),emissiveMap:coupleTex,emissiveIntensity:.18});
+const backMat=new THREE.MeshStandardMaterial({map:coupleTex,alphaTest:.5,side:THREE.DoubleSide,roughness:.9,color:new THREE.Color(0xb9a99c)});
+const coupleCard=new THREE.Group();
+const front=new THREE.Mesh(cgeo,coupleMat),backG=cgeo.clone(),back=new THREE.Mesh(backG,backMat);
+const shadowDepth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:coupleTex,alphaTest:.5});
+[front,back].forEach(m=>{m.castShadow=true;m.customDepthMaterial=shadowDepth;coupleCard.add(m);});
+// inflate the illustration into a soft relief using a depth map made from its silhouette (heads get a dome)
+{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const g=c.getContext('2d');g.drawImage(img,0,0);
+  const d=g.getImageData(0,0,c.width,c.height).data;
+  [[cgeo,1],[backG,-.75]].forEach(([geo,k])=>{const p=geo.attributes.position,uv=geo.attributes.uv;
+    for(let i=0;i<p.count;i++){const x=Math.min(c.width-1,Math.round(uv.getX(i)*(c.width-1))),y=Math.min(c.height-1,Math.round((1-uv.getY(i))*(c.height-1)));
+      p.setZ(i,k*DEPTH*d[(y*c.width+x)*4]/255);}
+    p.needsUpdate=true;geo.computeVertexNormals();});};img.src='couple-depth.png';}
 const couple=new THREE.Group();couple.add(coupleCard);scene.add(couple);
-{const b=mesh(new THREE.CircleGeometry(1.2,24),basic(0x1a2236,{transparent:true,opacity:.28,depthWrite:false}),0,.05,0,couple,false,false);b.rotation.x=-Math.PI/2;b.scale.y=.5;}
-let flipTarget=1;
+{const b=mesh(new THREE.CircleGeometry(1.4,24),basic(0x1a2236,{transparent:true,opacity:.28,depthWrite:false}),0,.05,0,couple,false,false);b.rotation.x=-Math.PI/2;b.scale.y=.5;}
+let coupleYaw=0;
 const skaters=[kid({coat:0xf2b544,scarf:0x3f9a6e,hair:0x3a2a20,hat:0xd83a32,mitt:0x3f9a6e,s:.55}),kid({coat:0x8fb4e8,scarf:0xf6efe4,hair:0x5a3a2a,hat:0xf6efe4,mitt:0xf6efe4,girl:true,s:.55})];
 
 /* trains */
@@ -1022,11 +1029,11 @@ function placeKids(pos,dir,walking,dt){
   phase+=dt*(walking?8:2);
   const y=HT(pos.x,pos.z);couple.position.set(pos.x,y,pos.z);
   const dx=camera.position.x-pos.x,dz=camera.position.z-pos.z,dy=camera.position.y-y;
-  couple.rotation.y=Math.atan2(dx,dz);
-  // lean the card back a little toward a high camera so it doesn't look squashed
-  coupleCard.rotation.x=-Math.min(.55,Math.atan2(dy,Math.hypot(dx,dz))*.45);
-  if(dir){tmpV.setFromMatrixColumn(camera.matrixWorld,0);flipTarget=(tmpV.x*dir.x+tmpV.z*dir.z)<-.15?-1:1;}
-  coupleCard.scale.x+=(flipTarget-coupleCard.scale.x)*Math.min(1,dt*9);
+  const camYaw=Math.atan2(dx,dz);let want=camYaw;
+  if(dir&&walking){let df=Math.atan2(dir.x,dir.z)-camYaw;while(df>Math.PI)df-=Math.PI*2;while(df<-Math.PI)df+=Math.PI*2;want=camYaw+Math.max(-.5,Math.min(.5,df*.35));}
+  let dd=want-coupleYaw;while(dd>Math.PI)dd-=Math.PI*2;while(dd<-Math.PI)dd+=Math.PI*2;coupleYaw+=dd*Math.min(1,dt*5);couple.rotation.y=coupleYaw;
+  // lean back a little toward a high camera
+  coupleCard.rotation.x=-Math.min(.45,Math.atan2(dy,Math.hypot(dx,dz))*.35);
   coupleCard.position.y=walking?Math.abs(Math.sin(phase))*.16:0;
   coupleCard.rotation.z=walking?Math.sin(phase)*.045:Math.sin(phase*.7)*.015;
   coupleCard.scale.y=walking?1:1+Math.sin(phase*1.4)*.012;
@@ -1043,11 +1050,8 @@ function tick(){
     leg=STEPS[S.step].legs[S.leg];
   }
   const cs=STEPS[S.step];const t=Math.min(S.t,1);const mins=leg.t0+(leg.t1-leg.t0)*t;
-  $('#clock').textContent=fmt(mins);
   const lp=cs.legs.reduce((a,l,i)=>a+(i<S.leg?l.dur:i===S.leg?l.dur*t:0),0)/cs.legs.reduce((a,l)=>a+l.dur,0);
   $('#prog').style.width=(lp*100).toFixed(1)+'%';
-  $('#modeTxt').textContent=leg.m==='stay'?ACT[leg.act]:leg.act==='depart'?'열차 출발':(MODE[leg.m].t+(leg.m==='walk'?' 이동':''));
-  $('#modeDot').style.background=leg.m==='stay'?'#f2b544':MODE[leg.m].c;
 
   const smp=sample(leg.path,leg.m==='stay'?0:t);
   const riding=leg.m!=='walk'&&leg.m!=='stay';
@@ -1080,7 +1084,7 @@ function tick(){
     stage.style.background='linear-gradient(180deg,'+mixHex(SKY.dayT,SKY.duskT,SKY.nightT,dk*.8,n)+' 0%,'+mixHex(SKY.dayB,SKY.duskB,SKY.nightB,dk*.9,n)+' 100%)';}
   sun.intensity=1.6*(1-n)+.12;sun.color.setHex(dk>.3?0xffbf94:0xfff0dc);
   hemi.intensity=.75-n*.58;renderer.toneMappingExposure=1.05-n*.42;hemi.color.setHex(n>.5?0x8a9ae0:0xdfeeff);
-  coupleLight.intensity=n*2.4;coupleMat.emissiveIntensity=.3+n*.25;
+  coupleLight.intensity=n*2.4;coupleMat.emissiveIntensity=.18+n*.25;
   nightMats.forEach(([m,k,b])=>m.emissiveIntensity=b+n*k);
   const blink=.5+.5*Math.sin(tsec*3);
   treeA.material.opacity=(.4+n*.6)*blink;treeB.material.opacity=(.4+n*.6)*(1-blink);garPts.material.opacity=.4+n*.6;lampPts.material.opacity=.15+n*.8;
