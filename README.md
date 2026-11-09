@@ -28,4 +28,5 @@
 | --- | --- |
 | `index.html` | 3D 지도, 캐릭터, 일정 화면 (three.js r128) |
 | `config.js` | Supabase 주소와 키 |
+| `couple.webp` | 지도 위를 걷는 커플 그림 (보내준 일러스트에서 배경을 지운 것) |
 | `supabase/schema.sql` | `xmas_stops` 테이블, 접근 권한, 실시간 설정 |
