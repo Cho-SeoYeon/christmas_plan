@@ -55,7 +55,11 @@ body{background:var(--night);color:var(--ink);font-family:var(--f-body);font-siz
 .brand{padding:8px 12px;min-width:0}
 .brand h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:19px;line-height:1.15}
 .brand h1 b{color:var(--holly);font-weight:400}
-.sync{display:inline-flex;align-items:center;gap:5px;margin-top:3px;font-size:11px;font-weight:600;color:#7a6556}
+.brandrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px}
+.music{pointer-events:auto;border:0;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font:inherit;font-size:11px;font-weight:600;padding:3px 9px 3px 7px;border-radius:999px;background:#f3e6d2;color:#3b2a1e}
+.music svg{width:12px;height:12px;fill:currentColor}
+.music.on{background:#e05a4f;color:#fff}
+.sync{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#7a6556}
 .sync i{width:8px;height:8px;border-radius:50%;background:#b9a99a;display:inline-block}
 .sync.live i{background:#3fb47a;box-shadow:0 0 0 3px rgba(63,180,122,.25)}
 .sync.err i{background:var(--holly)}
@@ -131,7 +135,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div class="top">
   <div class="pill brand">
     <h1>크리스마스 <b>서울</b> 데이트</h1>
-    <div class="sync" id="sync"><i></i><span>불러오는 중</span></div>
+    <div class="brandrow"><div class="sync" id="sync"><i></i><span>불러오는 중</span></div><button type="button" class="music" id="music" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v11.3A3.5 3.5 0 1 0 11 17.5V8h8V3H9z"/></svg><span>캐롤 켜기</span></button></div>
   </div>
   <div class="pill clock">
     <div class="t" id="clock">11:30</div>
@@ -451,12 +455,12 @@ function garland(parent,ax,ay,az,bx,by,bz,n=10){
   const c=mesh(new THREE.CylinderGeometry(.14,.14,len,8),M(0x2f6b45),0,0,0,parent,false);c.position.copy(a).lerp(b,.5);c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());
   for(let i=0;i<n;i++){const p=a.clone().lerp(b,(i+.5)/n);garlands.push([parent,p,[0xff5d5d,0xffd56b,0x8fe0a4,0x9fd0ff][i%4]]);}
 }
-function gableRoof(parent,w,d,h,col,ang=.62,over=.55){
+function gableRoof(parent,w,d,h,col,ang=.62,over=.55,snowK=1){
   const hd=d/2+over,rh=(d/2)*Math.tan(ang),ls=hd/Math.cos(ang);
   [1,-1].forEach(s=>{
     const r=mesh(RB(w+1.1,.32,ls,.1),M(col),0,h+rh-hd*Math.tan(ang)/2+.1,s*hd/2,parent);r.rotation.x=s*ang;
-    const sn=mesh(RB(w+1.35,.55,ls+.15,.25),snowMat,0,0,0,parent,true);sn.rotation.x=s*ang;
-    sn.position.set(0,r.position.y+Math.cos(ang)*.38,r.position.z+s*Math.sin(ang)*.38);
+    const sl=(ls+.15)*snowK,sn=mesh(RB(w+(snowK<1?.9:1.35),snowK<1?.4:.55,sl,snowK<1?.18:.25),snowMat,0,0,0,parent,true);sn.rotation.x=s*ang;
+    const back=(ls-sl)/2;sn.position.set(0,r.position.y+Math.cos(ang)*.38+Math.sin(ang)*back,r.position.z+s*Math.sin(ang)*.38-s*Math.cos(ang)*back);
   });
   const sh=new THREE.Shape();sh.moveTo(-d/2,0);sh.lineTo(d/2,0);sh.lineTo(0,rh);sh.lineTo(-d/2,0);
   const tg=new THREE.ExtrudeGeometry(sh,{depth:w-.1,bevelEnabled:false});tg.rotateY(Math.PI/2);tg.translate(-(w-.1)/2,h,0);
@@ -637,19 +641,59 @@ const treeLights=[];
   mesh(new THREE.CylinderGeometry(.08,.08,1.2,6),M(WOOD),3.6,.6,2.95,g,false);
   occupy(x,z,4.2);}
 // Gwanghwamun market booths
-const BOOTHS=[[10,2,'어묵'],[14,-1,'붕어빵'],[16,4,'핫초코'],[10,8,'호떡']];
-BOOTHS.forEach(([x,z,t],i)=>{const g=new THREE.Group();g.position.set(x,HT(x,z),z);g.rotation.y=-.5+(i%2)*.3;g0.add(g);
-  mesh(RB(3,1.4,2.2,.12),M(0x9a6440),0,.7,0,g);const cnt=glowMat(0x7a5236,0xffb85a,1.4);mesh(RB(2.8,.2,.5,.06),cnt,0,1.45,1.1,g,false);
-  [-1.35,1.35].forEach(s=>mesh(new THREE.BoxGeometry(.14,2.4,.14),M(0x7a4b2e),s,2.1,1.1,g,false));
-  for(let k=0;k<6;k++){const a=mesh(RB(.5,.12,1.6,.04),M(k%2?0xf6efe4:0xd83a32),-1.25+k*.5,3.1,.6,g,false);a.rotation.x=-.3;}
-  mesh(RB(3.2,1.4,2.4,.15),M(0x9a6440),0,3.6,-.2,g);mesh(RB(3.3,.35,2.5,.15),snowMat,0,4.35,-.2,g,false);
-  const sm=new THREE.Mesh(new THREE.PlaneGeometry(2.4,.72),new THREE.MeshStandardMaterial({map:signTex(t,'#c8463d')}));sm.position.set(0,3.75,1.01);g.add(sm);
-  garland(g,-1.5,2.75,1.15,1.5,2.75,1.15,6);occupy(x,z,2.4);});
+// Gwanghwamun Christmas market: rows of red-roofed wooden huts, lit aisles, light strands fanning from the tree
+const warmLights=[];
+const plankTex=canvasTex((g,w,h)=>{g.fillStyle='#c99662';g.fillRect(0,0,w,h);for(let i=0;i<8;i++){g.fillStyle=i%2?'#bb8654':'#d3a26e';g.fillRect(i*w/8,0,w/8-2,h);g.fillStyle='rgba(80,45,20,.35)';g.fillRect(i*w/8+w/8-2,0,2,h);}},128);
+const plankMat=new THREE.MeshStandardMaterial({map:plankTex,roughness:.85});
+const MARKET_SEED=(()=>{try{return toDiorama(buildSteps(sortRows(SEED.map((r,i)=>Object.assign({id:'m'+i},r))))).flatMap(s=>s.legs.filter(l=>l.m==='walk').map(l=>l.npts));}catch(e){return []}})();
+const GOODS=['뱅쇼','어묵','붕어빵','호떡','핫초코','오너먼트','츄러스','군고구마','캔들','쿠키','소시지','머그컵','리스','떡볶이','인형','카드','군밤','젤리'];
+const HUTS=[];
+{const plaza=new THREE.Mesh(new THREE.PlaneGeometry(24,19),new THREE.MeshStandardMaterial({map:(()=>{const t=cobbleTex.clone();t.needsUpdate=true;t.repeat.set(10,8);return t;})(),roughness:.9}));
+  plaza.rotation.x=-Math.PI/2;plaza.position.set(9,3.03,-1.5);plaza.receiveShadow=true;g0.add(plaza);
+  let k=0;
+  [[-8.6,0],[-3.2,Math.PI],[1.2,0],[6.4,Math.PI]].forEach(([z,ry])=>{
+    for(let x=-.5;x<=20.5;x+=3.1){
+      const hx=x+(ry?1.4:0);
+      if(Math.hypot(hx-TREE[0],z-TREE[1])<6)continue;
+      if(MARKET_SEED.some(p=>polyDist(hx,z,p)<1.9))continue;
+      if(occ.some(o=>Math.hypot(hx-o[0],z-o[1])<o[2]+1.3))continue;
+      HUTS.push([hx,z,ry,GOODS[k++%GOODS.length]]);
+    }});
+  const awnCols=[0xc23b2c,0xf6efe4,0x2f6b45];
+  HUTS.forEach(([x,z,ry,t],i)=>{
+    const y=HT(x,z);const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=ry;g0.add(g);g.userData.wallMat=plankMat;
+    mesh(RB(2.8,.25,2.4,.08),M(0x8a6a4a),0,.12,0,g);
+    mesh(RB(2.6,1.8,2.2,.1),plankMat,0,1.05,0,g);
+    const glow=glowMat(0x8a5a2e,0xffb24a,2.2);glow.emissiveIntensity=.45;nightMats.push([glow,2,.45]);
+    mesh(RB(2.1,.8,.14,.05),glow,0,1.38,1.07,g,false,false);
+    mesh(RB(2.5,.12,.55,.04),M(0x6b4528),0,.98,1.28,g);
+    for(let q=0;q<4;q++)mesh(new THREE.SphereGeometry(.14,8,6),M([0xd83a32,0xf2c14e,0x6fb7e8,0xfaf1e2][(q+i)%4],{roughness:.3,metalness:.3}),-.75+q*.5,1.14,1.3,g,false,false);
+    const aw=mesh(RB(2.6,.08,.75,.04),M(awnCols[i%3]),0,1.92,1.42,g,false);aw.rotation.x=-.5;
+    gableRoof(g,2.6,2.2,1.95,0xc23b2c,.62,.42,.42);
+    const sm=new THREE.Mesh(new THREE.PlaneGeometry(1.7,.51),new THREE.MeshStandardMaterial({map:signTex(t,'#6b2a20'),roughness:.8}));sm.position.set(0,2.32,1.72);sm.rotation.x=-.3;g.add(sm);
+    // bulbs along the front eave and the ridge
+    g.updateMatrixWorld(true);
+    for(let q=0;q<=8;q++){const v=new THREE.Vector3(-1.7+q*.425,1.92,1.62);g.localToWorld(v);warmLights.push([v.x,v.y,v.z,q%3?0xffd88a:0xfff3d6]);}
+    for(let q=0;q<=6;q++){const v=new THREE.Vector3(-1.7+q*.57,1.95+.79+.42,0);g.localToWorld(v);warmLights.push([v.x,v.y,v.z,0xffe2a0]);}
+    occupy(x,z,1.9);
+  });
+  occupy(9,-1.5,9);
+}
+// strands fanning out from the treetop to every hut, plus hut-to-hut along each row
+const strandLights=[];
+function strand(a,b,sag,step=.55){const len=a.distanceTo(b),n=Math.max(2,Math.round(len/step));
+  for(let i=0;i<=n;i++){const t=i/n;const p=a.clone().lerp(b,t);p.y-=Math.sin(Math.PI*t)*sag;strandLights.push([p.x,p.y,p.z,i%4===0?0xfff6dc:0xffcf6a]);}}
+{const top=new THREE.Vector3(TREE[0],HT(...TREE)+12.4,TREE[1]);
+  const ridge=h=>new THREE.Vector3(h[0],HT(h[0],h[1])+3.2,h[1]);
+  HUTS.forEach(h=>strand(top,ridge(h),1.2+Math.random()*.6));
+  for(let i=1;i<HUTS.length;i++){const a=HUTS[i-1],b=HUTS[i];if(a[1]===b[1]&&Math.abs(a[0]-b[0])<4)strand(ridge(a),ridge(b),.35,.45);}}
+// a golden spiral of bulbs wrapping the main tree
+const goldTree=[];{const [tx,tz]=TREE,ty=HT(tx,tz);for(let i=0;i<260;i++){const t=i/260,yy=1.6+t*10.6,r=3.5*(1-(yy-1)/11.2)+.25,a=t*Math.PI*2*9;goldTree.push([tx+Math.cos(a)*r,ty+yy,tz+Math.sin(a)*r,i%5?0xffcf5a:0xfff4d8]);}}
 // Bukchon hanok village
 [[12,-40,0],[20,-37,0],[26,-41,.2],[8,-50,0],[16,-47,-.1],[24,-50,0],[12,-33,0]].forEach(([x,z,r])=>hanok(x,z,r,.95));
 stoneWall([5,-36],[5,-52]);
 // lamps, snowmen, pots, benches
-[[-11,24],[-1,18],[7,14],[2,-2],[-14,4],[6,-12],[14,-16],[20,-27],[10,-28],[-3,-40],[18,-44],[-24,26],[-6,40],[-26,40]].forEach(p=>lamp(p[0],p[1]));
+[[-11,24],[-1,18],[7,14],[-14,4],[6,-12],[14,-16],[20,-27],[10,-28],[-3,-40],[18,-44],[-24,26],[-6,40],[-26,40]].forEach(p=>lamp(p[0],p[1]));
 snowman(-22,22,.4);snowman(18,-8,-.4);snowman(-2,-48,.2);snowman(26,18,-.6);
 [[-14,28],[-9,28],[4,-8],[-15,0],[22,-17],[3,-36],[-24,-10]].forEach(p=>pot(...p));
 bench(-26,30,0);bench(-20,-6,.4);bench(-6,-46,0);
@@ -696,6 +740,14 @@ g0.updateMatrixWorld(true);
 const gl=garlands.map(([p,v,c])=>{const w=v.clone();p.localToWorld(w);return [w.x,w.y,w.z,c];});
 const garPts=glowPoints(gl,.9);
 const lampPts=glowPoints(lampGlows.map(v=>[v.x,v.y,v.z,0xffd08a]),4.2);
+const warmPts=glowPoints(warmLights,.75),strandA=glowPoints(strandLights.filter((_,i)=>i%2),.62),strandB=glowPoints(strandLights.filter((_,i)=>!(i%2)),.62);
+const goldA=glowPoints(goldTree.filter((_,i)=>i%2),.95),goldB=glowPoints(goldTree.filter((_,i)=>!(i%2)),.95);
+// twinkling glints on the snow, in three phases
+const starTex=canvasTex((g,s)=>{const c=s/2;const r=g.createRadialGradient(c,c,0,c,c,c*.35);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,s,s);
+  g.fillStyle='rgba(255,255,255,.95)';g.beginPath();g.moveTo(c,0);g.quadraticCurveTo(c,c,s,c);g.quadraticCurveTo(c,c,c,s);g.quadraticCurveTo(c,c,0,c);g.quadraticCurveTo(c,c,c,0);g.fill();},64);
+const glints=[0,1,2].map(k=>{const arr=[];for(let i=0;i<150;i++){const x=GX0+1+Math.random()*(GW-2),z=BZ0+Math.random()*(BZ1-BZ0);arr.push(x,HT(x,z)+.25+Math.random()*.3,z);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));
+  const pts=new THREE.Points(g,new THREE.PointsMaterial({size:.9,map:starTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,color:k===1?0xfff1c0:0xffffff,opacity:0}));scene.add(pts);return pts;});
 
 /* ================= rebuildable route layer ================= */
 let routeGroup=new THREE.Group();scene.add(routeGroup);let stepDotMats=[],pins=[];
@@ -793,7 +845,7 @@ let heartTimer=0;function spawnHeart(p){const h=hearts.find(h=>!h.sp.visible);if
 const pickPin=new THREE.Group();mesh(pinGeo,M(0xf2b544),0,5.6,0,pickPin,false);mesh(pinTip,M(0xf2b544),0,4.7,0,pickPin,false);pickPin.scale.setScalar(.7);pickPin.visible=false;scene.add(pickPin);
 
 /* ================= labels ================= */
-const LANDMARKS=[['서울역',-18,33,12],['시청 · 스케이트장',6,28,8],['청계천',-26,14,2.5],['광화문',-8,-14.5,10],['경복궁',-18,-38,11],['북촌 한옥마을',18,-44,6],['국립현대미술관',4,-30,6],['남산서울타워',24,42,16,1]];
+const LANDMARKS=[['서울역',-18,33,12],['시청 · 스케이트장',6,28,8],['청계천',-26,14,2.5],['광화문',-8,-14.5,10],['광화문 마켓',12,0,5],['경복궁',-18,-38,11],['북촌 한옥마을',18,-44,6],['국립현대미술관',4,-30,6],['남산서울타워',24,42,16,1]];
 const lblEls=LANDMARKS.map(l=>{const d=document.createElement('div');d.className='lbl'+(l[4]?' deco':'');d.textContent=l[0];$('#labels').appendChild(d);return d});
 const stopLbl=document.createElement('div');stopLbl.className='lbl stop';$('#labels').appendChild(stopLbl);
 const bubble=$('#bubble'),flash=$('#flash');
@@ -1013,11 +1065,14 @@ function tick(){
   skyTimer-=dt;if(skyTimer<=0){skyTimer=.25;
     stage.style.background='linear-gradient(180deg,'+mixHex(SKY.dayT,SKY.duskT,SKY.nightT,dk*.8,n)+' 0%,'+mixHex(SKY.dayB,SKY.duskB,SKY.nightB,dk*.9,n)+' 100%)';}
   sun.intensity=1.6*(1-n)+.12;sun.color.setHex(dk>.3?0xffbf94:0xfff0dc);
-  hemi.intensity=.75-n*.4;hemi.color.setHex(n>.5?0x8a9ae0:0xdfeeff);
+  hemi.intensity=.75-n*.58;renderer.toneMappingExposure=1.05-n*.42;hemi.color.setHex(n>.5?0x8a9ae0:0xdfeeff);
   coupleLight.intensity=n*2.4;
   nightMats.forEach(([m,k,b])=>m.emissiveIntensity=b+n*k);
   const blink=.5+.5*Math.sin(tsec*3);
-  treeA.material.opacity=(.18+n*.82)*blink;treeB.material.opacity=(.18+n*.82)*(1-blink);garPts.material.opacity=.12+n*.85;lampPts.material.opacity=n*.85;
+  treeA.material.opacity=(.4+n*.6)*blink;treeB.material.opacity=(.4+n*.6)*(1-blink);garPts.material.opacity=.4+n*.6;lampPts.material.opacity=.15+n*.8;
+  warmPts.material.opacity=.55+n*.45;const b2=.5+.5*Math.sin(tsec*2.1+1);strandA.material.opacity=(.45+n*.55)*(.55+.45*b2);strandB.material.opacity=(.45+n*.55)*(1-.45*b2);
+  const b3=.5+.5*Math.sin(tsec*1.6);goldA.material.opacity=(.55+n*.45)*(.6+.4*b3);goldB.material.opacity=(.55+n*.45)*(1-.4*b3);
+  glints.forEach((g,k)=>{const v=Math.max(0,Math.sin(tsec*2.4+k*2.09));g.material.opacity=v*v*(.9-n*.3);});
   if(window._towerTop)window._towerTop.material.color.setHSL(0,.9,.55+.2*blink);
   if(window._star)window._star.rotation.y+=dt;
   cloudMat.opacity=.95-n*.45;
@@ -1037,6 +1092,63 @@ function tick(){
   if(leg.say&&!S.overview&&S.pause<=0&&t<.97){bubble.textContent=leg.say;bubble.style.opacity=1;place(bubble,focus.x,focus.y+(riding?3.2:3.6),focus.z,-6);}
   else bubble.style.opacity=0;
 }
+
+/* ================= carols: a little music box (public-domain tunes, synthesized live) ================= */
+const Carol=(()=>{
+  // [midi, beats]; 0 = rest
+  const JINGLE={bpm:132,beat:4,mel:[[64,1],[64,1],[64,2],[64,1],[64,1],[64,2],[64,1],[67,1],[60,1.5],[62,.5],[64,4],[65,1],[65,1],[65,1.5],[65,.5],[65,1],[64,1],[64,1],[64,.5],[64,.5],[64,1],[62,1],[62,1],[64,1],[62,2],[67,2],
+    [64,1],[64,1],[64,2],[64,1],[64,1],[64,2],[64,1],[67,1],[60,1.5],[62,.5],[64,4],[65,1],[65,1],[65,1.5],[65,.5],[65,1],[64,1],[64,1],[64,.5],[64,.5],[67,1],[67,1],[65,1],[62,1],[60,4]],
+    bass:[48,48,48,48,53,48,55,55,48,48,48,48,53,48,55,48],bells:true};
+  const WISH={bpm:150,beat:3,pick:1,mel:[[67,1],[72,1],[72,.5],[74,.5],[72,.5],[71,.5],[69,1],[69,1],[69,1],[74,1],[74,.5],[76,.5],[74,.5],[72,.5],[71,1],[67,1],[67,1],
+    [76,1],[76,.5],[77,.5],[76,.5],[74,.5],[72,1],[69,1],[67,.5],[67,.5],[69,1],[74,1],[71,1],[72,3]],
+    bass:[48,53,50,55,52,57,53,48],bells:false};
+  const SONGS=[JINGLE,WISH];
+  let ctx=null,master=null,verb=null,on=false,timer=0,song=0,idx=0,nextT=0,barT=0,bar=0,started=false;
+  const hz=m=>440*Math.pow(2,(m-69)/12);
+  function setup(){
+    ctx=new (window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=0;master.connect(ctx.destination);
+    // short synthetic reverb so the box sounds like it's in a warm room
+    const len=ctx.sampleRate*1.6,ir=ctx.createBuffer(2,len,ctx.sampleRate);
+    for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);}
+    verb=ctx.createConvolver();verb.buffer=ir;const wet=ctx.createGain();wet.gain.value=.28;verb.connect(wet);wet.connect(master);
+  }
+  function bell(t,m,vel=.22,dur=1.4){
+    [[1,1],[2,.32],[3.01,.12],[4.2,.05]].forEach(([mul,a])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=hz(m)*mul;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel*a,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur/mul*1.2);
+      o.connect(g);g.connect(master);g.connect(verb);o.start(t);o.stop(t+dur+.1);});
+  }
+  function pad(t,m,len){const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();o.type='triangle';o.frequency.value=hz(m);f.type='lowpass';f.frequency.value=900;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09,t+.04);g.gain.exponentialRampToValueAtTime(.0001,t+len);o.connect(f);f.connect(g);g.connect(master);g.connect(verb);o.start(t);o.stop(t+len+.05);}
+  let noiseBuf=null;
+  function sleigh(t){if(!noiseBuf){noiseBuf=ctx.createBuffer(1,ctx.sampleRate*.2,ctx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+    const s=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain();s.buffer=noiseBuf;f.type='highpass';f.frequency.value=7000;
+    g.gain.setValueAtTime(.06,t);g.gain.exponentialRampToValueAtTime(.0001,t+.12);s.connect(f);f.connect(g);g.connect(master);s.start(t);}
+  function schedule(){
+    const S_=SONGS[song],spb=60/S_.bpm;
+    while(nextT<ctx.currentTime+.4){
+      if(idx>=S_.mel.length){song=(song+1)%SONGS.length;idx=0;bar=0;nextT+=spb*2;barT=nextT+(SONGS[song].pick||0)*60/SONGS[song].bpm;return;}
+      const [m,b]=S_.mel[idx++];if(m){bell(nextT,m,.2);bell(nextT,m+12,.035,.8);}
+      nextT+=b*spb;
+    }
+    while(barT<nextT&&bar<S_.bass.length){const r=S_.bass[bar];pad(barT,r,S_.beat*spb*.95);pad(barT,r+(S_.beat===3?7:7),S_.beat*spb*.9);
+      if(S_.bells)for(let k=0;k<S_.beat;k++)sleigh(barT+k*spb+(k%2?spb*.5:0));
+      barT+=S_.beat*spb;bar++;}
+  }
+  function start(){if(!ctx)setup();if(ctx.state==='suspended')ctx.resume();on=true;
+    if(!started){started=true;nextT=ctx.currentTime+.15;barT=nextT;}else if(nextT<ctx.currentTime){nextT=ctx.currentTime+.15;barT=nextT;}
+    master.gain.cancelScheduledValues(ctx.currentTime);master.gain.linearRampToValueAtTime(.55,ctx.currentTime+.8);
+    clearInterval(timer);timer=setInterval(schedule,120);schedule();}
+  function stop(){on=false;if(!ctx)return;master.gain.cancelScheduledValues(ctx.currentTime);master.gain.linearRampToValueAtTime(0,ctx.currentTime+.4);
+    clearInterval(timer);setTimeout(()=>{if(!on){idx=0;bar=0;started=false;}},500);}
+  return {start,stop,get on(){return on}};
+})();
+let musicPref=true;try{musicPref=localStorage.getItem('xmas-music')!=='off'}catch(e){}
+function paintMusic(){const b=$('#music');b.classList.toggle('on',Carol.on);b.setAttribute('aria-pressed',Carol.on);b.querySelector('span').textContent=Carol.on?'캐롤 끄기':'캐롤 켜기';}
+$('#music').addEventListener('click',e=>{e.stopPropagation();if(Carol.on){Carol.stop();musicPref=false;}else{Carol.start();musicPref=true;}try{localStorage.setItem('xmas-music',musicPref?'on':'off')}catch(_){}paintMusic();});
+// browsers only allow sound after a tap, so the carol starts on the first touch anywhere
+addEventListener('pointerdown',function first(e){if(e.target.closest&&e.target.closest('#music'))return;removeEventListener('pointerdown',first,true);if(musicPref&&!Carol.on){try{Carol.start();paintMusic();}catch(_){}}},true);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&Carol.on){Carol.stop();paintMusic();}});
 
 /* ================= boot ================= */
 (async()=>{
